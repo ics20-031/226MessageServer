@@ -26,17 +26,17 @@ while True:
         item = data.split(b" ", 2) # Splits the input into 3 parts as a list and stores it into savedData
         # Error checking if item is less than 3 parts
         if (len(item) != 3):
-            print("NO, length not correct")
+            sc.sendall(b"NO, length not correct\n")
         # If key is not 8 bytes 
         elif not (re.match(b'^[a-zA-Z0-9]{8}$',item[1])):
-            print("NO, alphanumeric key is not up to par")
+            sc.sendall(b"NO, alphanumeric key is not up to par\n")
         else:
             savedData[item[1]] = item[2]
             sc.sendall(b"OK\n")
     # If message is GET
     elif (data.startswith(b'GET')):
         if not savedData: # If PUT was not run before and the list is empty
-            print("nothing saved")
+            sc.sendall(b"nothing saved\n")
         else: 
             received = data.split(b" ")
             
