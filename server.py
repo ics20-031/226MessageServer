@@ -18,8 +18,9 @@ savedData = {} # Creating a to store PUTs in
 while True:
     sc, sockname = sock.accept() # Wait until a connection is established
     print('Client:', sc.getpeername()) # Destination IP and port
-    data = sc.recv(MAX_SIZE) # recvfrom not needed since address is kn
+    data = sc.recv(BUF_SIZE) # recvfrom not needed since address is kn
     data = data.strip()
+    data = data[:MAX_SIZE]
     # If message is PUT
     if (data.startswith(b'PUT')):
         item = data.split(b" ", 2) # Splits the input into 3 parts as a list and stores it into savedData
