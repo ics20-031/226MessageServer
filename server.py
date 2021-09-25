@@ -38,9 +38,7 @@ while True:
         if not savedData: # If PUT was not run before and the list is empty
             print("nothing saved")
         else: 
-            print(data)
             received = data.split(b" ")
-            print(received)
             
             for key, value in savedData.items():
                 if key == received[1]:
