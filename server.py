@@ -20,7 +20,7 @@ while True:
     print('Client:', sc.getpeername()) # Destination IP and port
     data = sc.recv(BUF_SIZE) # recvfrom not needed since address is kn
     data = data.strip()
-    # data = data[0:135]
+
     # If message is PUT
     if (data.startswith(b'PUT')):
         data = data[3:] # Remove PUT from the string
@@ -34,8 +34,9 @@ while True:
         elif not (re.match(b'^[a-zA-Z0-9]{8}$', key)):
             sc.sendall(b"NO\n")
         # If value is over 160 characters
-        elif (len(value) > 160):
+        elif (len(value) > MAX_SIZE):
             sc.sendall(b"NO\n")
+        # If all conditions are met
         else:
             savedData[key] = value
             sc.sendall(b"OK\n")
