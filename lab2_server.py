@@ -139,6 +139,14 @@ sock.bind((HOST, PORT))
 sock.listen(NUM_CONNECTIONS)
 print('Server:', sock.getsockname())
 
+# 
+# PURPOSE:
+# receives data via get_line function, processes using proccess_line , then replies
+#
+# PARAMETERS:
+# id: current thread id
+# sc: current socket
+#
 def calledByThread(id, sc):
     #print('Client:', sc.getpeername())
     data = get_line(sc)
@@ -147,6 +155,9 @@ def calledByThread(id, sc):
     sc.sendall(response + b'\n')
     sc.close()
 
+#
+# Notes: Multithreading implementation
+#
 i = 0
 while True:
     sc, sockname = sock.accept() # Wait until a connection is established
