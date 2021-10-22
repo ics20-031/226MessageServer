@@ -1,16 +1,19 @@
-#!/usr/bin/python3
-import re
+#!/usr/bin/env python3
+# countsync.py
 
-data = "PUT 12341 234Hi"
-data = data[3:] # Remove PUT from the string
-print(data)
-data = data.replace(" ", "")
-print(data)
-# print("key is: " + key)
-# print("values is: " + value)
+import time
 
-# if (value == ""):
-#     print("no value")
-# if not (re.match('^[a-zA-Z0-9]{8}$', key)):
-#     print("wrong key")
+def count():
+    print("One")
+    time.sleep(1)
+    print("Two")
 
+def main():
+    for _ in range(3):
+        count()
+
+if __name__ == "__main__":
+    s = time.perf_counter()
+    main()
+    elapsed = time.perf_counter() - s
+    print(f"{__file__} executed in {elapsed:0.2f} seconds.")

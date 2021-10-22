@@ -2,6 +2,7 @@
 
 import socket
 import threading
+import asyncio 
 
 KEY_SIZE = 8
 MAX_MSG_SIZE = 160
@@ -32,11 +33,11 @@ messages = {}
 # NOTES:
 # No connection errors are handled
 #
-def get_line(current_socket):
+async def get_line(reader, writer):
         buffer = b''
         size = 0
         while True:
-                data = current_socket.recv(1)
+                data = await reader.read(1)
                 size += 1
                 if data == b'\n' or size >= BUF_SIZE:
                         return buffer
@@ -130,15 +131,6 @@ def process_line(s):
     else:
         return ERROR_RESPONSE
 
-#
-# Note: Connection errors are not handled
-#
-sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-sock.bind((HOST, PORT))
-sock.listen(NUM_CONNECTIONS)
-print('Server:', sock.getsockname())
-
 # 
 # PURPOSE:
 # receives data via get_line function, processes using proccess_line , then replies
@@ -147,19 +139,16 @@ print('Server:', sock.getsockname())
 # id: current thread id
 # sc: current socket
 #
-def calledByThread(id, sc):
-    #print('Client:', sc.getpeername())
-    data = get_line(sc)
-    #print('Data:', data)
+async def calledByThread(reader, writer):
+    data = await get_line(reader, writer)
     response = process_line(data)
-    sc.sendall(response + b'\n')
-    sc.close()
+    writer.write(response + b'\n')
+    await writer.drain()
+    writer.close()
+    await writer.wait_closed()
 
-#
-# Notes: Multithreading implementation
-#
-i = 0
-while True:
-    sc, sockname = sock.accept() # Wait until a connection is established
-    threading.Thread(target = calledByThread, args = (i, sc)).start()
-    i = i + 1
+async def main(): 
+    server = await asyncio.start_server(calledByThread, '127.0.0.1', 12345) 
+    await server.serve_forever() # without this, program terminates
+
+asyncio.run(main())
