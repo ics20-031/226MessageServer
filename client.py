@@ -2,16 +2,49 @@
 import asyncio
 import sys
 
-async def client(message):
-    reader, writer = await asyncio.open_connection('127.0.0.1', 12345)
-    writer.write(message.encode('utf-8') + b'\n')
-    data = await reader.readline() # more on this on the next slides
-    print(f'Received: {data.decode("utf-8")}')
+# host = str(input("Input a server ip: "))
+# port = str(input("Input a server port: "))
+# key = "GET" + str(input("Input an 8 digit server key: "))
+# try:
+#     if len(key) != 11:
+#         raise TypeError
+# except TypeError:
+#     print("Key must be 8 characters long.")
+#     sys.exit(1)
+host = "127.0.0.1"                                            
+port = 12345
+key = str(input("Input an 8 digit server key: "))
+key = "GET" + key
+
+async def client():
+    reader, writer = await asyncio.open_connection(host, port)
+    writer.write(key.encode('utf-8') + b'\n')
+    data = await reader.readline()
+    data = data.decode("utf-8")
+
+    # take the key from the first 8 characters and format it into GET command
+    nextKey = data[0:8]
+    print(f"Next key is: {nextKey}")
+    # take the message from the rest
+    message = data[8:]
+    print(f'Received: {message}')
+
+    while message:
+        nextKey = "GET" + nextKey
+        writer.write(nextKey.encode('utf-8') + b'\n')
+        data = await reader.readline()
+        data = data.decode("utf-8")
+
+        nextKey = data[0:8]
+        print(f'Next key is: {nextKey}')
+        message = data[8:]
+        print(f'Received: {message}')
+
+    # prompt for message to send back and format it into PUT command
+    sendMessage = "PUT" + nextKey + str(input("Please enter a message to send: "))
+    writer.write(sendMessage.encode('utf-8') + b'\n')
+
     writer.close() # reader has no close() function
     await writer.wait_closed() # wait until writer completes close()
-    
-if len(sys.argv) != 2:
-        print(f'{sys.argv[0]} needs 1 argument to transmit')
-        sys.exit(-1)
 
-asyncio.run(client(sys.argv[1]))
+asyncio.run(client())
