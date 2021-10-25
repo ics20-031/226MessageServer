@@ -24,24 +24,29 @@ async def client():
 
     # take the key from the first 8 characters and format it into GET command
     nextKey = data[0:8]
-    print(f"Next key is: {nextKey}")
     # take the message from the rest
     message = data[8:]
+    
     print(f'Received: {message}')
+    print(f"Next key is: {nextKey}")
 
-    while message:
+    while len(data) > 1:
         nextKey = "GET" + nextKey
+        reader, writer = await asyncio.open_connection(host, port)
         writer.write(nextKey.encode('utf-8') + b'\n')
         data = await reader.readline()
         data = data.decode("utf-8")
 
-        nextKey = data[0:8]
-        print(f'Next key is: {nextKey}')
-        message = data[8:]
-        print(f'Received: {message}')
+        if len(data) > 1:
+            nextKey = data[0:8]
+            message = data[8:]
+
+            print(f'Received: {message}')
+            print(f'Next key is: {nextKey}')
 
     # prompt for message to send back and format it into PUT command
-    sendMessage = "PUT" + nextKey + str(input("Please enter a message to send: "))
+    reader, writer = await asyncio.open_connection(host, port)
+    sendMessage = "PUT" + nextKey[3:] + str(input(f"Please enter a message to send: "))
     writer.write(sendMessage.encode('utf-8') + b'\n')
 
     writer.close() # reader has no close() function
