@@ -2,19 +2,15 @@
 import asyncio
 import sys
 
-# host = str(input("Input a server ip: "))
-# port = str(input("Input a server port: "))
-# key = "GET" + str(input("Input an 8 digit server key: "))
-# try:
-#     if len(key) != 11:
-#         raise TypeError
-# except TypeError:
-#     print("Key must be 8 characters long.")
-#     sys.exit(1)
-host = "127.0.0.1"                                            
-port = 12345
-key = str(input("Input an 8 digit server key: "))
-key = "GET" + key
+host = str(input("Input a server ip: "))
+port = str(input("Input a server port: "))
+key = "GET" + str(input("Input an 8 digit server key: "))
+try:
+    if len(key) != 11:
+        raise TypeError
+except TypeError:
+    print("Key must be 8 characters long.")
+    sys.exit(1)
 
 async def client():
     reader, writer = await asyncio.open_connection(host, port)

@@ -148,7 +148,7 @@ async def calledByThread(reader, writer):
     await writer.wait_closed()
 
 async def main(): 
-    server = await asyncio.start_server(calledByThread, '127.0.0.1', 12345) 
+    server = await asyncio.start_server(calledByThread, '::1', 12345) 
     await server.serve_forever() # without this, program terminates
 
 asyncio.run(main())
