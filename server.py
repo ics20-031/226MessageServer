@@ -81,7 +81,8 @@ def process_put(s):
     (key, msg, ok) = get_key(s)
     if (not ok) or (len(msg) > MAX_MSG_SIZE):
         return ERROR_RESPONSE
-
+    if key in messages.keys():
+        return ERROR_RESPONSE + messages[key][KEY_SIZE:]
     #print("Saving", msg, "with key", key)
     messages[key] = msg
 
