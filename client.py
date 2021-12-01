@@ -1,51 +1,119 @@
-#!/usr/bin/env python3
-import asyncio
-import sys
+#!/usr/bin/python3 
+import asyncio 
+import random 
+import sys 
+import traceback 
 
-host = str(input("Input a server ip: "))
-port = str(input("Input a server port: "))
-key = "GET" + str(input("Input an 8 digit server key: "))
-try:
-    if len(key) != 11:
-        raise TypeError
-except TypeError:
-    print("Key must be 8 characters long.")
-    sys.exit(1)
+BUF_SIZE = 160 
+KEY_SIZE = 8 
+GET_KEY = b'GET' 
+PUT_KEY = b'PUT' 
+EXCLAMATION = 33 
+TILDE = 126 
+NUM_ARGS = 4
 
-async def client():
-    reader, writer = await asyncio.open_connection(host, port)
-    writer.write(key.encode('utf-8') + b'\n')
-    data = await reader.readline()
-    data = data.decode("utf-8")
+# 
+# PURPOSE: 
+# Given a host, port, and key, contacts the host at the given port, 
+# issues a 'GETkey\n' command, parses the reply, and returns the result 
+# in the form (nextKey, message) 
+# 
+# PARAMETERS: 
+# 'host' contains the host IP or name 
+# 'port' contains the IP at which the host is listening 
+# 'key' contains the KEY_SIZE-byte alphanumeric key to be used to retrieve a message 
+# 
+# RETURN/SIDE EFFECTS: 
+# Assuming the host replies with an KEY_SIZE-byte key followed by a message, returns 
+# the tuple (key, message) 
+# 
+# NOTES: 
+# If the server has no message associated with the key, or an invalid result 
+# is returned, this function returns (key, b''). 
+# No exceptions are handled 
+#
 
-    # take the key from the first 8 characters and format it into GET command
-    nextKey = data[0:8]
-    # take the message from the rest
-    message = data[8:]
-    
-    print(f'Received: {message}')
-    print(f"Next key is: {nextKey}")
+async def get_message(host, port, key): 
+    reader, writer = await asyncio.open_connection(host, port) 
+    writer.write(GET_KEY + key + b'\n') 
+    data = await reader.read(BUF_SIZE) 
+    writer.close() 
+    await writer.wait_closed() 
+    if data == b'\n': 
+        return (key, b'') 
+    if len(data) < 8: 
+        return (key, b'') 
+    nextKey = data[: KEY_SIZE] 
+    message = data[KEY_SIZE:] 
+    return (nextKey, message)
 
-    while len(data) > 1:
-        nextKey = "GET" + nextKey
-        reader, writer = await asyncio.open_connection(host, port)
-        writer.write(nextKey.encode('utf-8') + b'\n')
-        data = await reader.readline()
-        data = data.decode("utf-8")
+# 
+# PURPOSE: 
+# Given a host, port, and key, prompts the user for a message to be transmitted, 
+# generates a new KEY_SIZE -byte key, contacts the host at the given port, and 
+# issues a 'PUTkeynewKeymessage\n' command 
+# 
+# PARAMETERS: 
+# 'host' contains the host IP or name 
+# 'port' contains the IP at which the host is listening 
+# 'key' contains the KEY_SIZE-byte alphanumeric key to be used to store a PUT message 
+# 
+# RETURN/SIDE EFFECTS: 
+# N/A 
+# 
+# NOTES: 
+# No exceptions are handled 
+#
 
-        if len(data) > 1:
-            nextKey = data[0:8]
-            message = data[8:]
+async def put_message(host, port, key): 
+    nextMessage = input("> ") 
+    nextKey = '' 
+    while len(nextKey) < KEY_SIZE: 
+        nextKey = nextKey + chr(random.randint(EXCLAMATION, TILDE)) 
+    reader, writer = await asyncio.open_connection(host, port) 
+    writer.write(PUT_KEY + key + nextKey.encode('utf-8') + nextMessage.encode('utf-8') + b'\n') 
+    await writer.drain() 
+    writer.close() 
+    await writer.wait_closed()
 
-            print(f'Received: {message}')
-            print(f'Next key is: {nextKey}')
+# 
+# PURPOSE: 
+# Given a host, port, and key, retrieves the message associated with the key from the 
+# host listening at the given port.  Should this message exist, extracts the next key 
+# from this message, then uses that key to get the next message.  This process is 
+# continued until no more messages are found.  At that point, the user is prompted for 
+# a new message, which is then stored on the server with a new key 
+# 
+# PARAMETERS: 
+# 'host' contains the host IP or name 
+# 'port' contains the IP at which the host is listening 
+# 'key' contains the KEY_SIZE-byte alphanumeric key to be used to retrieve the first message 
+# 
+# RETURN/SIDE EFFECTS: 
+# N/A 
+# 
+# NOTES: 
+# All exceptions are handled 
+#
 
-    # prompt for message to send back and format it into PUT command
-    reader, writer = await asyncio.open_connection(host, port)
-    sendMessage = "PUT" + nextKey[3:] + str(input(f"Please enter a message to send: "))
-    writer.write(sendMessage.encode('utf-8') + b'\n')
+async def main(host, port, key): 
+    try: 
+        nextKey = key.encode('utf-8') 
+        while True: 
+            (nextKey, message) = await get_message(host, port, nextKey) 
+            print(message) 
+            if message == b'': 
+                await put_message(host, port, nextKey) 
+                break 
+    except Exception as e: 
+        print(e) 
 
-    writer.close() # reader has no close() function
-    await writer.wait_closed() # wait until writer completes close()
+if len(sys.argv) != NUM_ARGS: 
+    print(sys.argv[0], 'IP', 'Port', 'Key') 
+    sys.exit(-1) 
 
-asyncio.run(client())
+host = sys.argv[1] 
+port = sys.argv[2] 
+key = sys.argv[3] 
+
+asyncio.run(main(host, port, key))
