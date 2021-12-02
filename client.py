@@ -66,15 +66,39 @@ async def get_message(host, port, key):
 #
 
 async def put_message(host, port, key): 
-    nextMessage = input("> ") 
-    nextKey = '' 
-    while len(nextKey) < KEY_SIZE: 
-        nextKey = nextKey + chr(random.randint(EXCLAMATION, TILDE)) 
-    reader, writer = await asyncio.open_connection(host, port) 
-    writer.write(PUT_KEY + key + nextKey.encode('utf-8') + nextMessage.encode('utf-8') + b'\n') 
-    await writer.drain() 
-    writer.close() 
-    await writer.wait_closed()
+    while True:
+        #print("put_message started")
+        loop = asyncio.get_running_loop()
+        nextMessage = await loop.run_in_executor(None, input, "> ")
+        nextKey = '' 
+        while len(nextKey) < KEY_SIZE: 
+            nextKey = nextKey + chr(random.randint(EXCLAMATION, TILDE)) 
+        reader, writer = await asyncio.open_connection(host, port) 
+        writer.write(PUT_KEY + key + nextKey.encode('utf-8') + nextMessage.encode('utf-8') + b'\n') 
+        await writer.drain() 
+        writer.close() 
+        await writer.wait_closed()
+        (nextKey, message) = await(get_message(host, port, nextKey))
+        #print(message)
+
+#
+# PURPOSE:
+# Polls the server every 5 seconds to see if the newest key already exists
+# in the server with an attached message.
+#
+# PARAMETERS:
+# 'host' host IP or name
+# 'port' IP at which the host is listening
+# 'nextKey' the key entered
+
+async def poll_server(host, port, nextKey):
+    while True:
+        #print("poll_server started")
+        #print(b"poll_server's nextKey is " + nextKey)
+        await asyncio.sleep(5)
+        (nextKey, message) = await get_message(host, port, nextKey)
+        if message != b'':
+            print(message) 
 
 # 
 # PURPOSE: 
@@ -96,17 +120,19 @@ async def put_message(host, port, key):
 # All exceptions are handled 
 #
 
-async def main(host, port, key): 
-    try: 
-        nextKey = key.encode('utf-8') 
-        while True: 
-            (nextKey, message) = await get_message(host, port, nextKey) 
-            print(message) 
-            if message == b'': 
-                await put_message(host, port, nextKey) 
-                break 
-    except Exception as e: 
-        print(e) 
+async def main(host, port, key):
+    while True: 
+        try:
+            print("main started") 
+            nextKey = key.encode('utf-8') 
+            while True: 
+                (nextKey, message) = await get_message(host, port, nextKey) 
+                print(message) 
+                if message == b'': 
+                    await asyncio.gather(put_message(host, port, nextKey), poll_server(host, port, nextKey)) 
+                    break 
+        except Exception as e: 
+            print(e) 
 
 if len(sys.argv) != NUM_ARGS: 
     print(sys.argv[0], 'IP', 'Port', 'Key') 
